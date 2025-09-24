@@ -295,7 +295,7 @@ const answer = num1 * num2;
           problem.element.classList.add('correct');
           
           // 점수 증가
-          score += 10 * level;
+          score += 10;
           scoreElement.textContent = score;
           
           // 문제 제거
@@ -335,7 +335,7 @@ const answer = num1 * num2;
       gameInterval = setInterval(createProblem, gameSpeed);
       
       // 떨어지는 속도도 증가
-      fallSpeed = 1 + (level - 1) * 0.05;
+      fallSpeed = 0.5 + (level - 1) * 0.05;
     }
     
     // 게임 오버
@@ -363,3 +363,4 @@ const answer = num1 * num2;
 </body>
 
 </html>
+
