@@ -146,8 +146,8 @@
     let level = 1;
     let problems = [];
     let gameInterval;
-    let gameSpeed = 4000; // 문제 생성 간격 (ms)
-    let fallSpeed = 0.5; // 문제가 떨어지는 속도 (픽셀/프레임)
+    let gameSpeed = 5000; // 문제 생성 간격 (ms)
+    let fallSpeed = 0.3; // 문제가 떨어지는 속도 (픽셀/프레임)
     let isGameOver = false;
     let animationId;
     
@@ -235,7 +235,7 @@ const answer = num1 * num2;
         element: problemElement,
         answer: answer,
         top: 0,
-        speed: fallSpeed * (1 + (level - 1) * 0.2) // 레벨에 따라 속도 증가
+        speed: fallSpeed * (1 + (level - 1) * 0.1) // 레벨에 따라 속도 증가
       });
     }
     
@@ -331,11 +331,11 @@ const answer = num1 * num2;
       
       // 게임 속도 증가
       clearInterval(gameInterval);
-      gameSpeed = Math.max(800, 2000 - (level - 1) * 200); // 최소 500ms까지 감소
+      gameSpeed = Math.max(1000, 2000 - (level - 1) * 100); // 최소 500ms까지 감소
       gameInterval = setInterval(createProblem, gameSpeed);
       
       // 떨어지는 속도도 증가
-      fallSpeed = 1 + (level - 1) * 0.15;
+      fallSpeed = 1 + (level - 1) * 0.05;
     }
     
     // 게임 오버
@@ -361,4 +361,5 @@ const answer = num1 * num2;
     initGame();
   </script>
 </body>
+
 </html>
