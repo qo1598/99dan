@@ -16,7 +16,6 @@
       height: 100vh;
       overflow: hidden;
     }
-    
     .game-container {
       position: relative;
       width: 100%;
@@ -28,7 +27,6 @@
       overflow: hidden;
       margin-top: 20px;
     }
-    
     .problem {
       position: absolute;
       padding: 10px 15px;
@@ -40,7 +38,6 @@
       color: #333;
       user-select: none;
     }
-    
     .input-area {
       margin-top: 20px;
       width: 100%;
@@ -48,16 +45,20 @@
       display: flex;
       justify-content: center;
     }
-    
     #answer-input {
       padding: 10px 15px;
       font-size: 18px;
       border: 2px solid #0099cc;
       border-radius: 5px;
-      width: 100px;
+      width: 120px;
       text-align: center;
     }
-    
+    /* 비활성화 시 시각적 표시 */
+    #answer-input:disabled {
+      background-color: #eeeeee;
+      opacity: 0.8;
+      cursor: not-allowed;
+    }
     .game-info {
       display: flex;
       justify-content: space-between;
@@ -65,7 +66,6 @@
       max-width: 800px;
       margin-top: 20px;
     }
-    
     .score, .lives, .level {
       font-size: 18px;
       font-weight: bold;
@@ -74,7 +74,6 @@
       border-radius: 5px;
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
-    
     .game-over {
       position: absolute;
       top: 0;
@@ -89,8 +88,10 @@
       align-items: center;
       font-size: 24px;
       display: none;
+      text-align: center;
+      padding: 0 20px;
+      box-sizing: border-box;
     }
-    
     .restart-btn {
       margin-top: 20px;
       padding: 10px 20px;
@@ -101,16 +102,13 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    
     .restart-btn:hover {
       background-color: #007399;
     }
-    
     .title {
       color: #0066cc;
       margin-bottom: 10px;
     }
-    
     .correct {
       background-color: #d4edda !important;
       color: #155724 !important;
@@ -120,13 +118,13 @@
 </head>
 <body>
   <h1 class="title">구구단 산성비 게임</h1>
-  
+
   <div class="game-info">
     <div class="score">점수: <span id="score">0</span></div>
     <div class="level">레벨: <span id="level">1</span></div>
     <div class="lives">생명: <span id="lives">5</span></div>
   </div>
-  
+
   <div class="game-container" id="game-container">
     <div class="game-over" id="game-over">
       <h2>게임 오버!</h2>
@@ -134,24 +132,24 @@
       <button class="restart-btn" id="restart-btn">다시 시작</button>
     </div>
   </div>
-  
+
   <div class="input-area">
     <input type="number" id="answer-input" placeholder="정답 입력" autocomplete="off">
   </div>
-  
+
   <script>
-    // 게임 상태 변수
+    // === 게임 상태 변수 ===
     let score = 0;
     let lives = 5;
     let level = 1;
     let problems = [];
-    let gameInterval;
-    let gameSpeed = 6000; // 문제 생성 간격 (ms)
-    let fallSpeed = 0.3; // 문제가 떨어지는 속도 (픽셀/프레임)
+    let gameInterval = null;
+    let gameSpeed = 6000;  // 문제 생성 간격 (ms)
+    let fallSpeed = 0.3;   // 문제가 떨어지는 기본 속도 (px/frame)
     let isGameOver = false;
-    let animationId;
-    
-    // DOM 요소
+    let animationId = null;
+
+    // === DOM 요소 ===
     const gameContainer = document.getElementById('game-container');
     const answerInput = document.getElementById('answer-input');
     const scoreElement = document.getElementById('score');
@@ -160,225 +158,209 @@
     const gameOverElement = document.getElementById('game-over');
     const finalScoreElement = document.getElementById('final-score');
     const restartBtn = document.getElementById('restart-btn');
-    
-    // 게임 초기화
+
+    // === 게임 초기화 ===
     function initGame() {
+      // 기존 타이머/애니메이션 정리
+      if (gameInterval) clearInterval(gameInterval);
+      if (animationId) cancelAnimationFrame(animationId);
+
       score = 0;
       lives = 5;
       level = 1;
       problems = [];
       isGameOver = false;
+      gameSpeed = 6000;
+      fallSpeed = 0.3;
 
-      answerInput.disabled = false;
-      answerInput.placeholder = '정답 입력';
-      answerInput.value = '';
-
+      // UI 초기화
       scoreElement.textContent = score;
       livesElement.textContent = lives;
       levelElement.textContent = level;
-
       gameOverElement.style.display = 'none';
 
+      // 입력창 활성화 및 초기화
+      answerInput.disabled = false;
+      answerInput.placeholder = '정답 입력';
+      answerInput.value = '';
       answerInput.focus();
-}
-      
+
       // 기존 문제 제거
-      const existingProblems = document.querySelectorAll('.problem');
-      existingProblems.forEach(problem => problem.remove());
-      
-      // 애니메이션 중지
-      if (animationId) {
-        cancelAnimationFrame(animationId);
-      }
-      
+      document.querySelectorAll('.problem').forEach(p => p.remove());
+
       // 게임 시작
       startGame();
-      
-      // 입력 필드에 포커스
-      answerInput.focus();
     }
-    
-    // 게임 시작
+
+    // === 게임 시작 ===
     function startGame() {
       // 일정 간격으로 문제 생성
       gameInterval = setInterval(createProblem, gameSpeed);
-      
-      // 문제 이동 처리
+      // 문제 이동 루프 시작
       moveProblems();
     }
-    
-    // 구구단 문제 생성
+
+    // === 구구단 문제 생성 ===
     function createProblem() {
       if (isGameOver) return;
-      
-      // 구구단 범위 설정 (2~9단)
-const danArray = [2, 3, 4, 5, 6, 7, 8, 9];
-const randomIndex = Math.floor(Math.random() * danArray.length);
-const num1 = danArray[randomIndex]; // 배열에서 무작위로 하나 선택
 
-const num2 = Math.floor(Math.random() * 9) + 1; // 1~9 사이의 숫자
-const answer = num1 * num2;
-      
+      // 구구단 범위: 2~9단, 곱하는 수 1~9
+      const danArray = [2,3,4,5,6,7,8,9];
+      const num1 = danArray[Math.floor(Math.random() * danArray.length)];
+      const num2 = Math.floor(Math.random() * 9) + 1;
+      const answer = num1 * num2;
+
       // 문제 요소 생성
       const problemElement = document.createElement('div');
       problemElement.className = 'problem';
       problemElement.textContent = `${num1} × ${num2} = ?`;
       problemElement.dataset.answer = answer;
-      
-      // 랜덤 위치에 배치 (좌우)
+
+      // 랜덤 가로 위치
       const containerWidth = gameContainer.clientWidth;
       const problemWidth = 100; // 예상 너비
-      const maxLeft = containerWidth - problemWidth;
-      const left = Math.floor(Math.random() * maxLeft);
-      
+      const maxLeft = Math.max(0, containerWidth - problemWidth);
+      const left = Math.floor(Math.random() * (maxLeft + 1));
       problemElement.style.left = `${left}px`;
-      problemElement.style.top = '0px'; // 상단에서 시작
-      
-      // 게임 컨테이너에 추가
+      problemElement.style.top = '0px';
+
+      // 컨테이너에 추가
       gameContainer.appendChild(problemElement);
-      
-      // 문제 객체 생성 및 저장
+
+      // 문제 상태 저장
       problems.push({
         element: problemElement,
         answer: answer,
         top: 0,
-        speed: fallSpeed * (0.5 + (level - 1) * 0.1) // 레벨에 따라 속도 증가
+        // 레벨에 비례하여 하강 속도 증가
+        speed: fallSpeed * (0.5 + (level - 1) * 0.1)
       });
     }
-    
-    // 문제 이동
+
+    // === 문제 이동 루프 ===
     function moveProblems() {
       if (isGameOver) return;
-      
+
       const containerHeight = gameContainer.clientHeight;
-      
-      // 문제 배열을 복사해서 처리 (삭제 시 인덱스 문제 방지)
       const currentProblems = [...problems];
-      
+
       for (let i = currentProblems.length - 1; i >= 0; i--) {
         const problem = currentProblems[i];
-        
-        // 현재 위치에서 속도만큼 아래로 이동
+
+        // 아래로 이동
         problem.top += problem.speed;
         problem.element.style.top = `${problem.top}px`;
-        
-        // 바닥에 닿았는지 확인
+
+        // 바닥 도달 체크
         if (problem.top > containerHeight - 40) {
           // 생명 감소
           lives--;
           livesElement.textContent = lives;
-          
+
           // 문제 제거
           problem.element.remove();
-          problems.splice(problems.indexOf(problem), 1);
-          
-          // 게임 오버 체크
+          const idx = problems.indexOf(problem);
+          if (idx > -1) problems.splice(idx, 1);
+
+          // 게임 오버 판정
           if (lives <= 0) {
             gameOver();
             return;
           }
         }
       }
-      
+
       // 다음 프레임 요청
       animationId = requestAnimationFrame(moveProblems);
     }
-    
-    // 정답 체크
-function checkAnswer() {
-  // ⬇️ 추가: 게임 오버거나 입력창이 비활성화면 바로 종료
-  if (isGameOver || answerInput.disabled) return;
 
-  const userAnswer = parseInt(answerInput.value);
-  if (isNaN(userAnswer)) return;
-      
-      // 문제 배열을 복사해서 처리
+    // === 정답 체크 ===
+    function checkAnswer() {
+      // 게임 오버거나 입력창 비활성화면 무시
+      if (isGameOver || answerInput.disabled) return;
+
+      const userAnswer = parseInt(answerInput.value);
+      if (isNaN(userAnswer)) return;
+
+      let isCorrect = false;
+
       const currentProblems = [...problems];
-      
       for (let i = 0; i < currentProblems.length; i++) {
         const problem = currentProblems[i];
-        
+
         if (parseInt(problem.answer) === userAnswer) {
-          // 정답 표시 효과
+          // 정답 표시
           problem.element.classList.add('correct');
-          
+
           // 점수 증가
           score += 10;
           scoreElement.textContent = score;
-          
-          // 문제 제거
+
+          // 잠시 후 문제 제거
           setTimeout(() => {
             problem.element.remove();
             const index = problems.indexOf(problem);
-            if (index > -1) {
-              problems.splice(index, 1);
-            }
+            if (index > -1) problems.splice(index, 1);
           }, 300);
-          
+
           isCorrect = true;
-          
-          // 레벨 업 체크 (100점마다)
+
+          // 레벨업 체크 (100점마다)
           if (score >= level * 100) {
             levelUp();
           }
-          
-          break; // 첫 번째 일치하는 문제만 처리
+          break; // 첫 일치 문제만 처리
         }
       }
-      
-      // 입력 필드 초기화
+
+      // 입력 초기화
       answerInput.value = '';
-      
       return isCorrect;
     }
-    
-    // 레벨 업
+
+    // === 레벨 업 ===
     function levelUp() {
       level++;
       levelElement.textContent = level;
-      
-      // 게임 속도 증가
-      clearInterval(gameInterval);
-      gameSpeed = Math.max(1000, 2000 - (level - 1) * 100); // 최소 500ms까지 감소
+
+      // 문제 생성 간격 가속 (최소 1000ms)
+      if (gameInterval) clearInterval(gameInterval);
+      gameSpeed = Math.max(1000, 2000 - (level - 1) * 100);
       gameInterval = setInterval(createProblem, gameSpeed);
-      
-      // 떨어지는 속도도 증가
+
+      // 신규 문제 낙하 속도 상향
       fallSpeed = 0.5 + (level - 1) * 0.05;
     }
-    
-    // 게임 오버
-function gameOver() {
-  isGameOver = true;
-  clearInterval(gameInterval);
-  cancelAnimationFrame(animationId);
 
-  // ⬇️ 추가: 입력창 비활성화 및 안내
-  answerInput.disabled = true;
-  answerInput.blur();
-  answerInput.placeholder = '게임 오버 — 다시 시작을 눌러주세요';
+    // === 게임 오버 ===
+    function gameOver() {
+      isGameOver = true;
 
-  finalScoreElement.textContent = score;
-  gameOverElement.style.display = 'flex';
-}
+      // 타이머/애니메이션 중단
+      if (gameInterval) clearInterval(gameInterval);
+      if (animationId) cancelAnimationFrame(animationId);
 
-    
-    // 이벤트 리스너
+      // 입력창 비활성화 및 안내
+      answerInput.disabled = true;
+      answerInput.blur();
+      answerInput.placeholder = '게임 오버 — 다시 시작을 눌러주세요';
+
+      // 점수 표시 & 오버레이
+      finalScoreElement.textContent = score;
+      gameOverElement.style.display = 'flex';
+    }
+
+    // === 이벤트 리스너 ===
     answerInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         checkAnswer();
       }
     });
-    
+
     restartBtn.addEventListener('click', initGame);
-    
-    // 게임 시작
+
+    // === 시작 ===
     initGame();
   </script>
 </body>
-
 </html>
-
-
-
-
-
