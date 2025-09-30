@@ -168,12 +168,19 @@
       level = 1;
       problems = [];
       isGameOver = false;
-      
+
+      answerInput.disabled = false;
+      answerInput.placeholder = '정답 입력';
+      answerInput.value = '';
+
       scoreElement.textContent = score;
       livesElement.textContent = lives;
       levelElement.textContent = level;
-      
+
       gameOverElement.style.display = 'none';
+
+      answerInput.focus();
+}
       
       // 기존 문제 제거
       const existingProblems = document.querySelectorAll('.problem');
@@ -278,11 +285,12 @@ const answer = num1 * num2;
     }
     
     // 정답 체크
-    function checkAnswer() {
-      const userAnswer = parseInt(answerInput.value);
-      if (isNaN(userAnswer)) return;
-      
-      let isCorrect = false;
+function checkAnswer() {
+  // ⬇️ 추가: 게임 오버거나 입력창이 비활성화면 바로 종료
+  if (isGameOver || answerInput.disabled) return;
+
+  const userAnswer = parseInt(answerInput.value);
+  if (isNaN(userAnswer)) return;
       
       // 문제 배열을 복사해서 처리
       const currentProblems = [...problems];
@@ -339,14 +347,20 @@ const answer = num1 * num2;
     }
     
     // 게임 오버
-    function gameOver() {
-      isGameOver = true;
-      clearInterval(gameInterval);
-      cancelAnimationFrame(animationId);
-      
-      finalScoreElement.textContent = score;
-      gameOverElement.style.display = 'flex';
-    }
+function gameOver() {
+  isGameOver = true;
+  clearInterval(gameInterval);
+  cancelAnimationFrame(animationId);
+
+  // ⬇️ 추가: 입력창 비활성화 및 안내
+  answerInput.disabled = true;
+  answerInput.blur();
+  answerInput.placeholder = '게임 오버 — 다시 시작을 눌러주세요';
+
+  finalScoreElement.textContent = score;
+  gameOverElement.style.display = 'flex';
+}
+
     
     // 이벤트 리스너
     answerInput.addEventListener('keypress', (e) => {
@@ -363,6 +377,7 @@ const answer = num1 * num2;
 </body>
 
 </html>
+
 
 
 
